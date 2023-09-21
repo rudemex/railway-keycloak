@@ -1,24 +1,28 @@
-FROM quay.io/keycloak/keycloak:latest as builder
+ARG KEYCLOAK_VERSION=latest
+ARG HTTP_PORT=8443
+ARG KEYCLOAK_ADMIN=admin
+ARG KEYCLOAK_ADMIN_PASSWORD=admin
+ARG KC_HEALTH_ENABLED=true
+ARG KC_METRICS_ENABLED=true
+ARG KC_DB=postgres
+ARG KC_DB_URL=jdbc:postgresql://localhost:5432/keycloak
+ARG KC_DB_USERNAME=keycloak
+ARG KC_DB_PASSWORD=password
+ARG KC_HOSTNAME=localhost
 
-# Enable health and metrics support
-ENV KC_HEALTH_ENABLED=true
-ENV KC_METRICS_ENABLED=true
+FROM quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
 
-# Configure a database vendor
-ENV KC_DB=postgres
+ENV KC_HEALTH_ENABLED=${KC_HEALTH_ENABLED}
+ENV KC_METRICS_ENABLED=${KC_METRICS_ENABLED}
+ENV KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN}
+ENV KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
 
-WORKDIR /opt/keycloak
-# for demonstration purposes only, please make sure to use proper certificates in production instead
-RUN keytool -genkeypair -storepass password -storetype PKCS12 -keyalg RSA -keysize 2048 -dname "CN=server" -alias server -ext "SAN:c=DNS:localhost,IP:0.0.0.0" -keystore conf/server.keystore
-RUN /opt/keycloak/bin/kc.sh build
+ENV KC_DB=${KC_DB}
+ENV KC_DB_URL=${KC_DB_URL}
+ENV KC_DB_USERNAME=${KC_DB_USERNAME}
+ENV KC_DB_PASSWORD=${KC_DB_PASSWORD}
+ENV KC_HOSTNAME=${KC_HOSTNAME}
 
-FROM quay.io/keycloak/keycloak:latest
-COPY --from=builder /opt/keycloak/ /opt/keycloak/
+EXPOSE ${HTTP_PORT}
 
-# change these values to point to a running postgres instance
-ENV KC_DB=postgres
-ENV KC_DB_URL=<DBURL>
-ENV KC_DB_USERNAME=<DBUSERNAME>
-ENV KC_DB_PASSWORD=<DBPASSWORD>
-ENV KC_HOSTNAME=localhost
-ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
+CMD ["start-dev", "--http-port=${HTTP_PORT}"]
